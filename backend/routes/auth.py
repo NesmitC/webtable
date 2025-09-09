@@ -2,16 +2,48 @@
 
 from flask import Blueprint, request, jsonify, session
 from models import User
-from extensions import db  # ← импортируем db из extensions
+from extensions import db, mail  # ← импортируем db из extensions
+from flask_mail import Message
 import re
 import json
 import uuid
+import traceback
 
 auth_bp = Blueprint('auth', __name__)
 
 def is_valid_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern) is not None
+
+
+def send_registration_email(email, username):
+    try:
+        msg = Message(
+            subject='Подтверждение регистрации — NeuroStat',
+            sender=('NeuroStat', 'neurostat@bk.ru'),
+            recipients=[email]
+        )
+        msg.body = f'''Привет, {username}!
+
+Спасибо за регистрацию в NeuroStat.
+
+Это тестовое письмо — подтверждение регистрации.
+
+С уважением,
+Команда NeuroStat
+'''
+        msg.html = f'''
+        <h3>Привет, {username}!</h3>
+        <p>Спасибо за регистрацию в <b>NeuroStat</b>.</p>
+        <p>Это тестовое письмо — подтверждение регистрации.</p>
+        <hr>
+        <small>С уважением,<br>Команда NeuroStat</small>
+        '''
+        mail.send(msg)
+        print(f"[SUCCESS] Письмо отправлено на {email}")
+    except Exception as e:
+        print(f"[ERROR] Не удалось отправить письмо на {email}: {str(e)}")
+        print(traceback.format_exc())  # вывод полной ошибки
 
 
 
@@ -42,6 +74,12 @@ def register():
     user.generate_verify_token()
     db.session.add(user)
     db.session.commit()
+    
+    try:
+        send_registration_email(user.email, user.username)
+    except Exception as e:
+        print(f"[ERROR] Не удалось отправить письмо: {e}")
+        # Можно добавить flash-сообщение пользователю, но для MVP — просто логируем
 
     print(f"[DEV] Verify link: http://localhost:5000/api/verify-email?token={user.verify_token}")
 

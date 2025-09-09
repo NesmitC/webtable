@@ -3,7 +3,7 @@
 from flask import Flask, session
 from flask_cors import CORS
 from dotenv import load_dotenv
-from extensions import db  # ← импортируем db из extensions
+from extensions import db, login_manager, mail
 import os
 
 load_dotenv()
@@ -21,6 +21,8 @@ def create_app():
 
     # 👇 Импортируем модели (чтобы они зарегистрировались в db)
     from models import User
+    
+    mail.init_app(app)
 
     # 👇 Регистрируем маршруты
     from routes.auth import auth_bp
