@@ -12,5 +12,5 @@ mail = Mail()
 
 @login_manager.user_loader
 def load_user(user_id):
-    from models import User  # импорт внутри функции, чтобы избежать циклического импорта
+    from .models import User  # импорт внутри функции, чтобы избежать циклического импорта
     return User.query.get(int(user_id))

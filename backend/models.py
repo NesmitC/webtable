@@ -1,6 +1,6 @@
 # backend/models.py
 
-from extensions import db  # ← импортируем db из extensions, а не из app
+from .extensions import db  # ← импортируем db из extensions, а не из app
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 

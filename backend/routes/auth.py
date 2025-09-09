@@ -1,8 +1,8 @@
 # backend/routes/auth.py
 
 from flask import Blueprint, request, jsonify, session
-from models import User
-from extensions import db, mail  # ← импортируем db из extensions
+from ..models import User
+from ..extensions import db, mail  # ← импортируем db из extensions
 from flask_mail import Message
 import re
 import json
@@ -16,44 +16,15 @@ def is_valid_email(email):
     return re.match(pattern) is not None
 
 
-def send_registration_email(email, username):
-    try:
-        msg = Message(
-            subject='Подтверждение регистрации — NeuroStat',
-            sender=('NeuroStat', 'neurostat@bk.ru'),
-            recipients=[email]
-        )
-        msg.body = f'''Привет, {username}!
-
-Спасибо за регистрацию в NeuroStat.
-
-Это тестовое письмо — подтверждение регистрации.
-
-С уважением,
-Команда NeuroStat
-'''
-        msg.html = f'''
-        <h3>Привет, {username}!</h3>
-        <p>Спасибо за регистрацию в <b>NeuroStat</b>.</p>
-        <p>Это тестовое письмо — подтверждение регистрации.</p>
-        <hr>
-        <small>С уважением,<br>Команда NeuroStat</small>
-        '''
-        mail.send(msg)
-        print(f"[SUCCESS] Письмо отправлено на {email}")
-    except Exception as e:
-        print(f"[ERROR] Не удалось отправить письмо на {email}: {str(e)}")
-        print(traceback.format_exc())  # вывод полной ошибки
-
-
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
-    username = data.get('username')  # ← новый параметр
+    username = data.get('username')
     email = data.get('email')
     password = data.get('password')
 
+    # Валидация входных данных
     if not username or not email or not password:
         return jsonify({"error": "Username, email and password required"}), 400
 
@@ -69,21 +40,41 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email already registered"}), 400
 
-    user = User(username=username, email=email)  # ← передаём username
+    # Создание пользователя
+    user = User(username=username, email=email)
     user.set_password(password)
-    user.generate_verify_token()
-    db.session.add(user)
-    db.session.commit()
-    
+    user.generate_verify_token()  # если используешь подтверждение по email
+
     try:
-        send_registration_email(user.email, user.username)
-    except Exception as e:
-        print(f"[ERROR] Не удалось отправить письмо: {e}")
-        # Можно добавить flash-сообщение пользователю, но для MVP — просто логируем
+        db.session.add(user)
+        db.session.commit()
+    except Exception as db_error:
+        db.session.rollback()
+        print(f"[DB ERROR] Failed to save user: {str(db_error)}")
+        print(traceback.format_exc())
+        return jsonify({"error": "Registration failed due to server error"}), 500
 
-    print(f"[DEV] Verify link: http://localhost:5000/api/verify-email?token={user.verify_token}")
+    # Отправка письма
+    try:
+        send_registration_email(user.email, user.username, user.verify_token)
+        print(f"[SUCCESS] Verification email sent to {user.email}")
+    except Exception as mail_error:
+        # Не возвращаем ошибку клиенту — регистрация прошла, письмо можно отправить позже
+        print(f"[MAIL ERROR] Failed to send email to {user.email}: {str(mail_error)}")
+        print(traceback.format_exc())
 
-    return jsonify({"message": "User registered. Check email to verify."}), 201
+    # Для разработки — выводим ссылку в консоль
+    print(f"[DEV] Verify link: http://localhost:5006/api/verify-email?token={user.verify_token}")
+
+    return jsonify({
+        "message": "User registered successfully. Please check your email to verify your account.",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email
+        }
+    }), 201
+    
 
 
 
