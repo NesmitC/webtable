@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Нейростат — Онлайн-школа</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="#grade5">5 класс</a>
+            <a href="#grade6">6 класс</a>
+            <a href="#grade7">7 класс</a>
+            <span id="auth-buttons">
+                <button id="btn-login">Войти</button>
+                <button id="btn-register">Зарегистрироваться</button>
+                <button id="btn-logout" style="display:none;">Выйти</button>
+            </span>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Добро пожаловать в Нейростат</h1>
+        <p>Онлайн-школа для школьников 5–7 классов.</p>
+
+        <!-- Форма регистрации -->
+        <div id="register-form" style="display:none; margin: 2rem 0;">
+            <h3>Регистрация</h3>
+            <input type="text" id="reg-username" placeholder="Логин (мин. 3 символа)" required><br><br>
+            <input type="email" id="reg-email" placeholder="Email" required><br><br>
+            <input type="password" id="reg-password" placeholder="Пароль" required><br><br>
+            <button id="submit-register">Зарегистрироваться</button>
+            <p id="reg-message"></p>
+        </div>
+
+        <!-- Форма входа -->
+        <div id="login-form" style="display:none; margin: 2rem 0;">
+            <h3>Вход</h3>
+            <input type="email" id="login-email" placeholder="Email" required><br><br>
+            <input type="password" id="login-password" placeholder="Пароль" required><br><br>
+            <button id="submit-login">Войти</button>
+            <p id="login-message"></p>
+        </div>
+
+        <!-- Блок данных пользователя (после входа) -->
+        <div id="user-data" style="display:none; margin: 2rem 0;">
+            <h3>Ваши данные</h3>
+            <textarea id="user-data-input" placeholder="Введите свои данные (например, прогресс)" rows="4" cols="50"></textarea><br><br>
+            <button id="save-data">Сохранить данные</button>
+            <button id="load-data">Загрузить данные</button>
+            <p id="data-message"></p>
+            <div id="loaded-data"></div>
+        </div>
+    </main>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
