@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <title>Нейростат — Онлайн-школа</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/reset.css">
 </head>
 <body>
     <header>
         <nav>
-            <a href="#grade5">5 класс</a>
+            <a href="planning_5kl.html">5 класс</a>
             <a href="#grade6">6 класс</a>
             <a href="#grade7">7 класс</a>
             <span id="auth-buttons">
@@ -22,6 +23,10 @@
     <main>
         <h1>Добро пожаловать в Нейростат</h1>
         <p>Онлайн-школа для школьников 5–7 классов.</p>
+
+        <div id="welcome-message" style="display: none; margin: 20px 0; padding: 15px; background: #e8f4f8; border-left: 4px solid #2c3e50; font-weight: bold; color: #2c3e50;">
+            Добро пожаловать, <span id="welcome-username">ученик</span>!
+        </div>
 
         <!-- Форма регистрации -->
         <div id="register-form" style="display:none; margin: 2rem 0;">
@@ -42,15 +47,6 @@
             <p id="login-message"></p>
         </div>
 
-        <!-- Блок данных пользователя (после входа) -->
-        <div id="user-data" style="display:none; margin: 2rem 0;">
-            <h3>Ваши данные</h3>
-            <textarea id="user-data-input" placeholder="Введите свои данные (например, прогресс)" rows="4" cols="50"></textarea><br><br>
-            <button id="save-data">Сохранить данные</button>
-            <button id="load-data">Загрузить данные</button>
-            <p id="data-message"></p>
-            <div id="loaded-data"></div>
-        </div>
     </main>
 
     <script src="js/main.js"></script>

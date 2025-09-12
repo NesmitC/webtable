@@ -1,15 +1,19 @@
 # backend/routes/auth.py
 
-from flask import Blueprint, request, jsonify, session, current_app, render_template
+from flask import Blueprint, request, jsonify, session, current_app, redirect, url_for
 from ..models import User
-from ..extensions import db, mail
+from ..extensions import db, mail, limiter
 from flask_mail import Message
 from datetime import datetime, timedelta
 import re
 import json
 import traceback
+from flask_limiter.util import get_remote_address
+
 
 auth_bp = Blueprint('auth', __name__)
+
+
 
 def is_valid_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -50,6 +54,7 @@ def send_registration_email(email, username, token):
         raise e  # пробрасываем ошибку, чтобы она попала в лог в register()
 
 @auth_bp.route('/register', methods=['POST'])
+@limiter.limit("3 per 1 minutes")
 def register():
     data = request.get_json()
     username = data.get('username')
@@ -62,6 +67,9 @@ def register():
 
     if len(username) < 3:
         return jsonify({"error": "Username must be at least 3 characters"}), 400
+    
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
 
     if User.query.filter_by(username=username).first():
         return jsonify({"error": "Username already taken"}), 400
@@ -117,19 +125,22 @@ def verify_email():
     if not user:
         return jsonify({"error": "Invalid or expired token"}), 400
 
-    # 👉️ Проверка: токен должен быть свежим (например, не старшее 24 часов)
     if user.verify_token and (datetime.utcnow() - user.created_at) > timedelta(hours=24):
-        return jsonify({"error": "Token expireded"}), 400
+        return jsonify({"error": "Token expired"}), 400  # исправил опечатку "expireded"
 
     user.email_verified = True
     user.verify_token = None
     db.session.commit()
 
-    return render_template('verify_success.html')
+    # 👇 Автоматически входим в систему после подтверждения email
+    session['user_id'] = user.id
+
+    return redirect('/frontend/index.html')
 
 
 
 @auth_bp.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def login():
     data = request.get_json()
     email = data.get('email')
@@ -168,3 +179,27 @@ def user_data():
 
     elif request.method == 'GET':
         return jsonify({"data": json.loads(user.user_data) if user.user_data else {}}), 200
+    
+    
+    
+@auth_bp.route('/user/profile', methods=['GET'])
+def user_profile():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not logged in"}), 401
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({
+        "username": user.username,
+        "email": user.email,
+        "email_verified": user.email_verified
+    }), 200
+
+
+@auth_bp.route('/logout', methods=['POST'])
+def logout():
+    session.pop('user_id', None)  # Удаляем user_id из сессии
+    return jsonify({"message": "Logged out successfully"}), 200

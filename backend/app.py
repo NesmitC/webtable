@@ -1,13 +1,18 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
-from .extensions import db, login_manager, mail
+from .extensions import db, login_manager, mail, limiter
 import os
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter.util import get_remote_address
+
 
 load_dotenv()
 
 def create_app():
     app = Flask(__name__)
+    
+    limiter.init_app(app)
     
     # Секретный ключ
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'fallback-secret-for-dev')
@@ -28,6 +33,8 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
     
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    csrf = CSRFProtect(app)
 
     # CORS
     CORS(app, origins=["http://localhost:5500", "http://127.0.0.1:5500"])
@@ -53,8 +60,16 @@ def create_app():
     @app.route('/')
     def hello():
         return {"message": "NeuroStat API is running"}
+    
+    # Обслуживание статических файлов из папки frontend/
+    @app.route('/frontend/<path:filename>')
+    def frontend_static(filename):
+        return send_from_directory('../frontend', filename)
 
     return app
+
+
+
 
 if __name__ == '__main__':
     app = create_app()

@@ -30,10 +30,16 @@ document.getElementById('submit-register').addEventListener('click', async () =>
         return;
     }
 
+    if (password.length < 6) {
+        messageEl.style.color = 'red';
+        messageEl.textContent = 'Пароль должен быть не короче 6 символов';
+        return;
+}
+
     const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }) // ← ИСПРАВЛЕНО: добавлен username
+        body: JSON.stringify({ username, email, password })
     });
 
     const result = await response.json();
@@ -45,6 +51,7 @@ document.getElementById('submit-register').addEventListener('click', async () =>
         alert('Проверьте почту — отправлено письмо с подтверждением!');
     }
 });
+
 
 // Вход
 document.getElementById('submit-login').addEventListener('click', async () => {
@@ -65,59 +72,57 @@ document.getElementById('submit-login').addEventListener('click', async () => {
     messageEl.textContent = result.message || result.error;
 
     if (response.ok) {
-        document.getElementById('user-data').style.display = 'block';
-        document.getElementById('btn-logout').style.display = 'inline-block';
-        document.getElementById('auth-buttons').querySelectorAll('button').forEach(btn => {
-            if (btn.id !== 'btn-logout') btn.style.display = 'none';
-        });
-
-        const welcomeMsg = document.createElement('p');
-        welcomeMsg.textContent = `Привет, ${result.username}!`;
-        welcomeMsg.style.cssText = 'font-size: 1.2em; font-weight: bold; color: #2c3e50; margin: 10px 0;';
-        document.querySelector('main h1').after(welcomeMsg);
+        showLoggedInState(result.username);
+        document.getElementById('login-form').style.display = 'none'; // 👈 Убираем форму входа
     }
 });
 
-// Сохранение данных
-document.getElementById('save-data').addEventListener('click', async () => {
-    const data = document.getElementById('user-data-input').value;
-    const messageEl = document.getElementById('data-message');
 
-    const response = await fetch(`${API_URL}/user/data`, {
+// Выход — через API
+document.getElementById('btn-logout').addEventListener('click', async () => {
+    const response = await fetch(`${API_URL}/logout`, {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: data })
+        credentials: 'include'
     });
 
-    const result = await response.json();
-    messageEl.textContent = result.message || result.error;
-    messageEl.style.color = response.ok ? 'green' : 'red';
+    if (response.ok) {
+        location.reload(); // Перезагружаем страницу — возвращаемся в "гостевой" режим
+    } else {
+        alert('Ошибка выхода');
+    }
 });
 
-// Загрузка данных
-document.getElementById('load-data').addEventListener('click', async () => {
-    const messageEl = document.getElementById('data-message');
-    const loadedDataEl = document.getElementById('loaded-data');
 
-    const response = await fetch(`${API_URL}/user/data`, {
+// Проверка — залогинен ли пользователь?
+async function checkLoginStatus() {
+    const response = await fetch(`${API_URL}/user/profile`, {
         method: 'GET',
         credentials: 'include'
     });
 
-    if (!response.ok) {
-        messageEl.textContent = 'Ошибка загрузки данных';
-        messageEl.style.color = 'red';
-        return;
+    if (response.ok) {
+        const result = await response.json();
+        document.getElementById('welcome-username').textContent = result.username;
+        document.getElementById('welcome-message').style.display = 'block';
+        showLoggedInState(result.username);
     }
+}
 
-    const result = await response.json();
-    loadedDataEl.textContent = JSON.stringify(result.data, null, 2);
-    messageEl.textContent = 'Данные загружены';
-    messageEl.style.color = 'green';
-});
+// 👇 Единая функция для отображения состояния "залогинен"
+function showLoggedInState(username) {
+    document.getElementById('btn-logout').style.display = 'inline-block';
+    document.getElementById('auth-buttons').querySelectorAll('button').forEach(btn => {
+        if (btn.id !== 'btn-logout') btn.style.display = 'none';
+    });
 
-// Выход
-document.getElementById('btn-logout').addEventListener('click', () => {
-    location.reload();
-});
+    // Добавляем приветствие, если его ещё нет
+    if (!document.querySelector('#welcome-message + p')) {
+        const welcomeMsg = document.createElement('p');
+        welcomeMsg.textContent = `Привет, ${username}!`;
+        welcomeMsg.style.cssText = 'font-size: 1.2em; font-weight: bold; color: #2c3e50; margin: 10px 0;';
+        document.querySelector('main h1').after(welcomeMsg);
+    }
+}
+
+// Запускаем при загрузке страницы
+document.addEventListener('DOMContentLoaded', checkLoginStatus);

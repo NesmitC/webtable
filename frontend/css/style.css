@@ -93,3 +93,20 @@ input, textarea {
 .verify-container a:hover {
     background-color: #1a252f;
 }
+
+/* ===== Planning Pages ======= */
+
+#text-block {
+    margin: 20px auto;
+    padding: 15px;
+    max-width: 800px;
+    line-height: 1.6;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    #text-block {
+        padding: 10px;
+        font-size: 0.95em;
+    }
+}

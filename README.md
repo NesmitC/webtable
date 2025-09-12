@@ -4,7 +4,7 @@
 python backend/app.py
 
 ФРОНТЕНД
-http://127.0.0.1:5500/frontend/index.html
+http://localhost:5006/frontend/index.html
 
 
 
