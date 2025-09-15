@@ -6,7 +6,8 @@ from .extensions import db, login_manager, mail, limiter
 import os
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter.util import get_remote_address
-from .models import User, UserOrfoData
+# from .models import User, UserOrfoData
+from backend.models import User, UserOrfoData  # ← добавить этот импорт
 
 
 load_dotenv()
@@ -30,26 +31,32 @@ def create_app():
     # База данных
     # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///backend/instance/database.db')
     # Получаем абсолютный путь к backend/instance/database.db
-    basedir = os.path.abspath(os.path.dirname(__file__))  # путь к backend/
-    database_path = os.path.join(basedir, 'instance', 'database.db')
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
+    # basedir = os.path.abspath(os.path.dirname(__file__))  # путь к backend/
+    # database_path = os.path.join(basedir, 'instance', 'database.db')
+    # app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
     
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))  # на уровень выше
+    database_path = os.path.join(basedir, 'backend', 'instance', 'database.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
 
     # csrf = CSRFProtect(app)
 
     # CORS
     # CORS(app, origins=["http://localhost:5500", "http://127.0.0.1:5500"])
-    CORS(app, origins=["http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:5006"])
+    # CORS(app, origins=["http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:5006"], supports_credentials=True)
+    # Упростим CORS для разработки:
+    CORS(app, 
+        origins=["*"],  # Разрешить все для тестов
+        supports_credentials=True,
+        allow_headers=["*"],
+        methods=["*"])
     
     # Инициализация расширений
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'  # маршрут для входа
     mail.init_app(app)
-
-    # Импорт моделей (после инициализации!)
-    from .models import User
 
     # Регистрация маршрутов
     from .routes.auth import auth_bp

@@ -1,123 +1,206 @@
-// frontend\js\main.js
+console.log('main.js loaded successfully!');
 
-const API_URL = 'http://localhost:5006/api';
-
-document.getElementById('btn-register').addEventListener('click', () => {
-    document.getElementById('register-form').style.display = 'block';
-    document.getElementById('login-form').style.display = 'none';
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded and parsed');
+    
+    // Проверяем, что элементы существуют
+    const btnRegister = document.getElementById('btn-register');
+    const btnSubmitRegister = document.getElementById('submit-register');
+    const btnLoginNav = document.getElementById('btn-login');
+    const submitLogin = document.getElementById('submit-login');
+    const btnLogout = document.getElementById('btn-logout');
+    
+    console.log('Register button:', btnRegister);
+    console.log('Submit register button:', btnSubmitRegister);
+    console.log('Login nav button:', btnLoginNav);
+    console.log('Submit login button:', submitLogin);
+    console.log('Logout button:', btnLogout);
+    
+    // Обработчики для кнопок навигации
+    if (btnRegister) {
+        btnRegister.addEventListener('click', function() {
+            console.log('Register nav button clicked');
+            document.getElementById('register-form').style.display = 'block';
+            document.getElementById('login-form').style.display = 'none';
+        });
+    }
+    
+    if (btnLoginNav) {
+        btnLoginNav.addEventListener('click', function() {
+            console.log('Login nav button clicked');
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+        });
+    }
+    
+    // Обработчики для кнопок форм
+    if (btnSubmitRegister) {
+        btnSubmitRegister.addEventListener('click', registerUser);
+    }
+    
+    if (submitLogin) {
+        submitLogin.addEventListener('click', loginUser);
+    }
+    
+    if (btnLogout) {
+        btnLogout.addEventListener('click', logoutUser);
+    }
+    
+    checkAuthStatus();
 });
 
-document.getElementById('btn-login').addEventListener('click', () => {
-    document.getElementById('login-form').style.display = 'block';
-    document.getElementById('register-form').style.display = 'none';
-});
-
-document.getElementById('submit-register').addEventListener('click', async () => {
+// Функция регистрации
+async function registerUser() {
+    console.log('registerUser function called');
+    
     const username = document.getElementById('reg-username').value;
     const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
     const messageEl = document.getElementById('reg-message');
-
+    
+    console.log('Registration data:', { username, email, password: '***' });
+    
     if (!username || !email || !password) {
+        messageEl.textContent = 'Все поля обязательны для заполнения';
         messageEl.style.color = 'red';
-        messageEl.textContent = 'Заполните все поля';
         return;
     }
-
-    if (username.length < 3) {
+    
+    try {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ username, email, password })
+        });
+        
+        console.log('Registration response status:', response.status);
+        
+        const data = await response.json();
+        console.log('Registration response data:', data);
+        
+        if (response.ok) {
+            messageEl.textContent = 'Регистрация успешна! Проверьте email.';
+            messageEl.style.color = 'green';
+            
+            // Очищаем форму
+            document.getElementById('reg-username').value = '';
+            document.getElementById('reg-email').value = '';
+            document.getElementById('reg-password').value = '';
+            
+        } else {
+            messageEl.textContent = data.error || 'Ошибка регистрации';
+            messageEl.style.color = 'red';
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        messageEl.textContent = 'Сетевая ошибка: ' + error.message;
         messageEl.style.color = 'red';
-        messageEl.textContent = 'Логин должен быть не короче 3 символов';
-        return;
     }
+}
 
-    if (password.length < 6) {
-        messageEl.style.color = 'red';
-        messageEl.textContent = 'Пароль должен быть не короче 6 символов';
-        return;
-    }
-
-    const response = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password })
-    });
-
-    const result = await response.json();
-
-    messageEl.style.color = response.ok ? 'green' : 'red';
-    messageEl.textContent = result.message || result.error;
-
-    if (response.ok) {
-        alert('Проверьте почту — отправлено письмо с подтверждением!');
-    }
-});
-
-document.getElementById('submit-login').addEventListener('click', async () => {
+// Функция входа
+async function loginUser() {
+    console.log('loginUser function called');
+    
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
     const messageEl = document.getElementById('login-message');
-
-    const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include'
-    });
-
-    const result = await response.json();
-
-    messageEl.style.color = response.ok ? 'green' : 'red';
-    messageEl.textContent = result.message || result.error;
-
-    if (response.ok) {
-        showLoggedInState(result.username);
-        document.getElementById('login-form').style.display = 'none';
+    
+    console.log('Login data:', { email, password: '***' });
+    
+    if (!email || !password) {
+        messageEl.textContent = 'Email и пароль обязательны';
+        messageEl.style.color = 'red';
+        return;
     }
-});
-
-document.getElementById('btn-logout').addEventListener('click', async () => {
-    const response = await fetch(`${API_URL}/logout`, {
-        method: 'POST',
-        credentials: 'include'
-    });
-
-    if (response.ok) {
-        location.reload();
-    } else {
-        alert('Ошибка выхода');
-    }
-});
-
-async function checkLoginStatus() {
-    const response = await fetch(`${API_URL}/user/profile`, {
-        method: 'GET',
-        credentials: 'include'
-    });
-
-    if (response.ok) {
-        const result = await response.json();
-        document.getElementById('welcome-username').textContent = result.username;
-        document.getElementById('welcome-message').style.display = 'block';
-        showLoggedInState(result.username);
+    
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ email, password })
+        });
+        
+        console.log('Login response status:', response.status);
+        
+        const data = await response.json();
+        console.log('Login response data:', data);
+        
+        if (response.ok) {
+            messageEl.textContent = 'Вход успешен!';
+            messageEl.style.color = 'green';
+            
+            // Очищаем форму
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
+            
+            checkAuthStatus();
+        } else {
+            messageEl.textContent = data.error || 'Ошибка входа';
+            messageEl.style.color = 'red';
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        messageEl.textContent = 'Сетевая ошибка: ' + error.message;
+        messageEl.style.color = 'red';
     }
 }
 
-function showLoggedInState(username) {
-    document.getElementById('btn-logout').style.display = 'inline-block';
-    document.getElementById('auth-buttons').querySelectorAll('button').forEach(btn => {
-        if (btn.id !== 'btn-logout') btn.style.display = 'none';
-    });
-
-    // Показываем username в хедере
-    document.getElementById('welcome-username').textContent = username;
-
-    // Добавляем приветствие, если его ещё нет
-    if (!document.querySelector('#welcome-message + p')) {
-        const welcomeMsg = document.createElement('p');
-        welcomeMsg.textContent = `Привет, ${username}!`;
-        welcomeMsg.style.cssText = 'font-size: 1.2em; font-weight: bold; color: #2c3e50; margin: 10px 0;';
-        document.querySelector('main h1').after(welcomeMsg);
+// Проверка статуса авторизации
+async function checkAuthStatus() {
+    console.log('checkAuthStatus called');
+    
+    try {
+        const response = await fetch('/api/user/profile', {
+            credentials: 'include'
+        });
+        
+        console.log('Auth check response status:', response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('User data:', data);
+            
+            document.getElementById('welcome-username').textContent = data.username;
+            document.getElementById('welcome-message').style.display = 'block';
+            document.getElementById('btn-logout').style.display = 'inline-block';
+            document.getElementById('btn-register').style.display = 'none';
+            document.getElementById('btn-login').style.display = 'none';
+            
+        } else {
+            console.log('User not authenticated');
+            document.getElementById('welcome-message').style.display = 'none';
+            document.getElementById('btn-logout').style.display = 'none';
+            document.getElementById('btn-register').style.display = 'inline-block';
+            document.getElementById('btn-login').style.display = 'inline-block';
+        }
+    } catch (error) {
+        console.error('Ошибка проверки авторизации:', error);
     }
 }
 
-document.addEventListener('DOMContentLoaded', checkLoginStatus);
+// Выход
+async function logoutUser() {
+    console.log('logoutUser called');
+    
+    try {
+        const response = await fetch('/api/logout', {
+            method: 'POST',
+            credentials: 'include'
+        });
+        
+        console.log('Logout response status:', response.status);
+        
+        if (response.ok) {
+            checkAuthStatus();
+        }
+    } catch (error) {
+        console.error('Ошибка выхода:', error);
+    }
+}

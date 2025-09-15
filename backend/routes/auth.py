@@ -21,45 +21,72 @@ def is_valid_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
 
-# ✉️ Функция отправки письма — встроена прямо здесь (как в project_webmath)
-def send_registration_email(email, username, token):
+# # ✉️ Функция отправки письма — встроена прямо здесь (как в project_webmath)
+# def send_registration_email(email, username, token, app):
+#     try:
+#         verify_link = f"http://localhost:5006/api/verify-email?token={token}"
+        
+#         msg = Message(
+#             subject='Подтверждение регистрации — NeuroStat',
+#             sender=app.config.get('MAIL_DEFAULT_SENDER', 'neurostat@bk.ru'),
+#             recipients=[email]
+#         )
+#         msg.body = f'''Привет, {username}!
+
+# Спасибо за регистрацию в NeuroStat.
+
+# Пожалуйста, подтвердите ваш email, перейдя по ссылке:
+# {verify_link}
+
+# Если вы не регистрировались — просто проигнорируйте это письмо.
+
+# С уважением,
+# Команда NeuroStat
+# '''
+#         msg.html = f'''
+#         <h3>Привет, {username}!</h3>
+#         <p>Спасибо за регистрацию в <b>NeuroStat</b>.</p>
+#         <p>Пожалуйста, <a href="{verify_link}">подтвердите ваш email</a>.</p>
+#         <p><small>Если вы не регистрировались — просто проигнорируйте это письмо.</small></p>
+#         <hr>
+#         <small>С уважением,<br>Команда NeuroStat</small>
+#         '''
+#         mail.send(msg)
+#     except Exception as e:
+#         raise e  # пробрасываем ошибку, чтобы она попала в лог в register()
+
+# Временно упростим отправку email для отладки
+def send_registration_email(email, username, token, app):
     try:
         verify_link = f"http://localhost:5006/api/verify-email?token={token}"
+        print(f"=== EMAIL FOR {email} ===")
+        print(f"Verify link: {verify_link}")
+        print("========================")
         
-        msg = Message(
-            subject='Подтверждение регистрации — NeuroStat',
-            sender=current_app.config.get('MAIL_DEFAULT_SENDER', 'neurostat@bk.ru'),
-            recipients=[email]
-        )
-        msg.body = f'''Привет, {username}!
-
-Спасибо за регистрацию в NeuroStat.
-
-Пожалуйста, подтвердите ваш email, перейдя по ссылке:
-{verify_link}
-
-Если вы не регистрировались — просто проигнорируйте это письмо.
-
-С уважением,
-Команда NeuroStat
-'''
-        msg.html = f'''
-        <h3>Привет, {username}!</h3>
-        <p>Спасибо за регистрацию в <b>NeuroStat</b>.</p>
-        <p>Пожалуйста, <a href="{verify_link}">подтвердите ваш email</a>.</p>
-        <p><small>Если вы не регистрировались — просто проигнорируйте это письмо.</small></p>
-        <hr>
-        <small>С уважением,<br>Команда NeuroStat</small>
-        '''
-        mail.send(msg)
+        # Пока отключим реальную отправку для тестов
+        # msg = Message(
+        #     subject='Подтверждение регистрации — NeuroStat',
+        #     sender=app.config.get('MAIL_DEFAULT_SENDER', 'neurostat@bk.ru'),
+        #     recipients=[email]
+        # )
+        # msg.body = f'''Привет, {username}!...'''
+        # mail.send(msg)
+        
     except Exception as e:
-        raise e  # пробрасываем ошибку, чтобы она попала в лог в register()
+        print(f"Email error: {e}")
+
 
 @auth_bp.route('/register', methods=['POST'])
 @limiter.limit("3 per 1 minutes")
 def register():
+    print("[DEBUG] /register endpoint called")  # Добавим логирование
     data = request.get_json()
-    print("[DEBUG] Received data:", data)  # 👈 ДОБАВЬ ЭТУ СТРОЧКУ
+    print("[DEBUG] Received data:", data)
+    
+    if not data:
+        print("[DEBUG] No JSON data received")
+        return jsonify({"error": "No data received"}), 400
+    
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
@@ -88,19 +115,24 @@ def register():
     user.set_password(password)
     user.generate_verify_token()
 
+    print("[DEBUG] User object created:", user)
+    print("[DEBUG] User.password_hash:", user.password_hash)
+    print("[DEBUG] User.verify_token:", user.verify_token)
+
     try:
         db.session.add(user)
+        print("[DEBUG] User added to session")
         db.session.commit()
-        print(f"[SUCCESS] User {username} saved to database")
+        print(f"[SUCCESS] User {username} saved to database with ID: {user.id}")
     except Exception as db_error:
         db.session.rollback()
-        print(f"[DB ERROR] Failed to save user: {str(db_error)}")
+        print(f"[CRITICAL DB ERROR] Failed to save user: {str(db_error)}")
         print(traceback.format_exc())
         return jsonify({"error": "Registration failed due to server error"}), 500
 
     # Отправка письма
     try:
-        send_registration_email(user.email, user.username, user.verify_token)
+        send_registration_email(user.email, user.username, user.verify_token, current_app._get_current_object())
         print(f"[SUCCESS] Verification email sent to {user.email}")
     except Exception as mail_error:
         print(f"[MAIL ERROR] Failed to send email to {user.email}: {str(mail_error)}")
