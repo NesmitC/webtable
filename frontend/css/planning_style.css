@@ -20,6 +20,10 @@
     align-items: center; /* Центруем по горизонтали */
 }
 
+.text-orf {
+    text-align: left;
+}
+
 .item-1, .item-2, .item-3, .item-4, .item-5 {
     background-color: rgb(47, 197, 33);
 }
@@ -35,7 +39,7 @@
     padding: 7px;
 }
 
-#item-text {
+.input-text {
     width: 100%;
     resize: vertical; /* Возможность изменять высоту руками пользователя */
     overflow-y: auto; /* Появляется прокрутка, если текста много */
@@ -61,4 +65,8 @@
 .text-orf-effects {
     font-weight: bold; /* Выделяем важное слово полужирным */
     text-decoration: underline; /* Подчеркивание текста */
+}
+
+.bold {
+    font-weight: bold; /* Выделяем полужирным */
 }

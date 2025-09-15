@@ -14,7 +14,7 @@ mail = Mail()
 
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["1000 per day", "250 per hour"],
+    default_limits=["1000 per day", "500 per hour"],
     storage_uri="memory://",  # для разработки
     strategy="fixed-window"
 )

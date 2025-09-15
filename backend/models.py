@@ -29,3 +29,12 @@ class User(db.Model, UserMixin):
     verify_token = db.Column(db.String(100), unique=True, nullable=True)
     def generate_verify_token(self):
         self.verify_token = secrets.token_urlsafe(50)
+
+
+# Модель для хранения примеров пользователя
+class UserOrfoData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    field_name = db.Column(db.String(50), nullable=False)
+    content = db.Column(db.Text, nullable=True)
+    __table_args__ = (db.UniqueConstraint('user_id', 'field_name', name='_user_field_uc'),)

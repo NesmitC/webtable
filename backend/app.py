@@ -1,3 +1,4 @@
+# backend\app.py
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -5,6 +6,7 @@ from .extensions import db, login_manager, mail, limiter
 import os
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter.util import get_remote_address
+from .models import User, UserOrfoData
 
 
 load_dotenv()
@@ -34,10 +36,11 @@ def create_app():
     
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    csrf = CSRFProtect(app)
+    # csrf = CSRFProtect(app)
 
     # CORS
-    CORS(app, origins=["http://localhost:5500", "http://127.0.0.1:5500"])
+    # CORS(app, origins=["http://localhost:5500", "http://127.0.0.1:5500"])
+    CORS(app, origins=["http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:5006"])
     
     # Инициализация расширений
     db.init_app(app)
@@ -65,8 +68,10 @@ def create_app():
     @app.route('/frontend/<path:filename>')
     def frontend_static(filename):
         return send_from_directory('../frontend', filename)
+    
 
     return app
+
 
 
 

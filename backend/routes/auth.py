@@ -1,7 +1,7 @@
 # backend/routes/auth.py
 
 from flask import Blueprint, request, jsonify, session, current_app, redirect, url_for
-from ..models import User
+from ..models import User, UserOrfoData
 from ..extensions import db, mail, limiter
 from flask_mail import Message
 from datetime import datetime, timedelta
@@ -9,6 +9,8 @@ import re
 import json
 import traceback
 from flask_limiter.util import get_remote_address
+from flask_login import current_user
+
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -57,6 +59,7 @@ def send_registration_email(email, username, token):
 @limiter.limit("3 per 1 minutes")
 def register():
     data = request.get_json()
+    print("[DEBUG] Received data:", data)  # 👈 ДОБАВЬ ЭТУ СТРОЧКУ
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
@@ -203,3 +206,45 @@ def user_profile():
 def logout():
     session.pop('user_id', None)  # Удаляем user_id из сессии
     return jsonify({"message": "Logged out successfully"}), 200
+
+
+# --- Сохранение данных орфографии ---
+@auth_bp.route('/save-orfo', methods=['POST'])
+def save_orfo():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not logged in"}), 401
+
+    data = request.get_json()
+    print("[DEBUG] Save-orfo received:", data)
+    
+    field_name = data.get('field')
+    content = data.get('content')
+
+    if not field_name:
+        return jsonify({"error": "field is required"}), 400
+
+    # Находим или создаём запись
+    record = UserOrfoData.query.filter_by(user_id=user_id, field_name=field_name).first()
+    if record:
+        record.content = content
+    else:
+        record = UserOrfoData(user_id=user_id, field_name=field_name, content=content)
+        db.session.add(record)
+
+    db.session.commit()
+    print("[DEBUG] Record committed to DB")
+    
+    return jsonify({"status": "saved"}), 200
+
+
+# --- Загрузка данных орфографии ---
+@auth_bp.route('/load-orfo', methods=['GET'])
+def load_orfo():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not logged in"}), 401
+
+    records = UserOrfoData.query.filter_by(user_id=user_id).all()
+    data = {record.field_name: record.content for record in records}
+    return jsonify(data), 200

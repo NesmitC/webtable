@@ -1,6 +1,7 @@
+// frontend\js\main.js
+
 const API_URL = 'http://localhost:5006/api';
 
-// Показать/скрыть формы
 document.getElementById('btn-register').addEventListener('click', () => {
     document.getElementById('register-form').style.display = 'block';
     document.getElementById('login-form').style.display = 'none';
@@ -11,7 +12,6 @@ document.getElementById('btn-login').addEventListener('click', () => {
     document.getElementById('register-form').style.display = 'none';
 });
 
-// Регистрация
 document.getElementById('submit-register').addEventListener('click', async () => {
     const username = document.getElementById('reg-username').value;
     const email = document.getElementById('reg-email').value;
@@ -34,7 +34,7 @@ document.getElementById('submit-register').addEventListener('click', async () =>
         messageEl.style.color = 'red';
         messageEl.textContent = 'Пароль должен быть не короче 6 символов';
         return;
-}
+    }
 
     const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
@@ -52,8 +52,6 @@ document.getElementById('submit-register').addEventListener('click', async () =>
     }
 });
 
-
-// Вход
 document.getElementById('submit-login').addEventListener('click', async () => {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
@@ -73,12 +71,10 @@ document.getElementById('submit-login').addEventListener('click', async () => {
 
     if (response.ok) {
         showLoggedInState(result.username);
-        document.getElementById('login-form').style.display = 'none'; // 👈 Убираем форму входа
+        document.getElementById('login-form').style.display = 'none';
     }
 });
 
-
-// Выход — через API
 document.getElementById('btn-logout').addEventListener('click', async () => {
     const response = await fetch(`${API_URL}/logout`, {
         method: 'POST',
@@ -86,14 +82,12 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
     });
 
     if (response.ok) {
-        location.reload(); // Перезагружаем страницу — возвращаемся в "гостевой" режим
+        location.reload();
     } else {
         alert('Ошибка выхода');
     }
 });
 
-
-// Проверка — залогинен ли пользователь?
 async function checkLoginStatus() {
     const response = await fetch(`${API_URL}/user/profile`, {
         method: 'GET',
@@ -108,12 +102,14 @@ async function checkLoginStatus() {
     }
 }
 
-// 👇 Единая функция для отображения состояния "залогинен"
 function showLoggedInState(username) {
     document.getElementById('btn-logout').style.display = 'inline-block';
     document.getElementById('auth-buttons').querySelectorAll('button').forEach(btn => {
         if (btn.id !== 'btn-logout') btn.style.display = 'none';
     });
+
+    // Показываем username в хедере
+    document.getElementById('welcome-username').textContent = username;
 
     // Добавляем приветствие, если его ещё нет
     if (!document.querySelector('#welcome-message + p')) {
@@ -124,5 +120,4 @@ function showLoggedInState(username) {
     }
 }
 
-// Запускаем при загрузке страницы
 document.addEventListener('DOMContentLoaded', checkLoginStatus);
